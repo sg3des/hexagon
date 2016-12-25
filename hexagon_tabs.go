@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/gtk"
@@ -68,13 +66,9 @@ func NewTab(filename string) {
 	t.ascii = gtk.NewTextView()
 	t.ascii.SetEditable(false)
 	t.ascii.SetCursorVisible(true)
-	// t.ascii.SetState(gtk.STATE_INSENSITIVE)
 	t.ascii.ModifyFontEasy("LiberationMono 8")
 	t.ascii.ModifyText(gtk.STATE_NORMAL, gdk.NewColor("grey"))
 	t.asciibuffer = t.ascii.GetBuffer()
-	// t.asciibuffer.SetProperty("cursor-pisition", nil)
-	t.ascii.Connect("mark-set", func() { log.Println(t.asciibuffer.GetCharCount()) })
-	// t.ascii.on
 
 	if !newfile {
 		data, err := ioutil.ReadFile(filename)
@@ -125,21 +119,10 @@ func NewTab(filename string) {
 	ui.notebook.SetCurrentPage(n)
 	t.source.GrabFocus()
 
-	log.Println(n)
-
 	tabs = append(tabs, t)
 
-	go func() {
-		for {
-			time.Sleep(500 * time.Millisecond)
-			var iter gtk.TextIter
-			mark := t.asciibuffer.GetInsert()
-			t.asciibuffer.GetIterAtMark(&iter, mark)
-			// t.asciibuffer.GetIterAtOffset(iter, char_offset)
-			offset := iter.GetOffset()
-			log.Println(offset)
-		}
-	}()
+	t.ascii.Connect("button-press-event", t.FocusASCII)
+	t.ascii.Connect("move-cursor", t.FocusASCII)
 
 }
 
@@ -151,52 +134,9 @@ func (t *Tab) SetASCII(text []string) {
 	t.asciibuffer.SetText(strings.Join(text, "\n"))
 }
 
-func byteToHex(data []byte) ([]string, string, []string) {
-	var lines []string
-	var nums []string
-	var ascii []string
-
-	reader := bytes.NewReader(data)
-
-	var line = make([]byte, 16)
-	for {
-		n, err := reader.Read(line)
-		if n == 0 {
-			break
-		}
-		line = line[:n]
-
-		lines = append(lines, fmt.Sprintf("% x", line))
-		nums = append(nums, fmt.Sprintf(" %06x  ", len(nums)*16))
-		ascii = append(ascii, byteToASCII(line))
-
-		if err != nil {
-			break
-		}
-	}
-
-	return nums, strings.Join(lines, "\n"), ascii
-}
-
-func byteToASCII(data []byte) string {
-	var s string
-	for _, b := range data {
-		if b < 32 || b > 126 {
-			s += "."
-		} else {
-			s += string(b)
-		}
-	}
-
-	return " " + s + " "
-}
-
-func tabsContains(filename string) bool {
-	for n, t := range tabs {
-		if t.filename == filename {
-			ui.notebook.SetCurrentPage(n)
-			return true
-		}
-	}
-	return false
+func (t *Tab) FocusASCII() {
+	var iter gtk.TextIter
+	mark := t.asciibuffer.GetInsert()
+	t.asciibuffer.GetIterAtMark(&iter, mark)
+	log.Println(iter.GetOffset())
 }
