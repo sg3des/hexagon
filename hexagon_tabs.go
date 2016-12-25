@@ -73,7 +73,7 @@ func NewTab(filename string) {
 	t.ascii.ModifyText(gtk.STATE_NORMAL, gdk.NewColor("grey"))
 	t.asciibuffer = t.ascii.GetBuffer()
 	// t.asciibuffer.SetProperty("cursor-pisition", nil)
-	// t.ascii.Connect("click_notify_event", func() { log.Println(t.asciibuffer.GetCharCount()) })
+	t.ascii.Connect("mark-set", func() { log.Println(t.asciibuffer.GetCharCount()) })
 	// t.ascii.on
 
 	if !newfile {
