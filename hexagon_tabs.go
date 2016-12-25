@@ -7,6 +7,7 @@ import (
 	"log"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/gtk"
@@ -55,22 +56,25 @@ func NewTab(filename string) {
 	t.lines.SetEditable(false)
 	t.lines.SetCursorVisible(false)
 	t.lines.SetState(gtk.STATE_INSENSITIVE)
-	t.lines.ModifyFontEasy("LiberationMono 11px")
+	t.lines.ModifyFontEasy("LiberationMono 8")
 	t.lines.ModifyText(gtk.STATE_NORMAL, gdk.NewColor("grey"))
 	t.linesbuffer = t.lines.GetBuffer()
 
 	t.sourcebuffer = gsv.NewSourceBufferWithLanguage(gsv.SourceLanguageManagerGetDefault().GetLanguage("hex"))
 	t.source = gsv.NewSourceViewWithBuffer(t.sourcebuffer)
 	t.source.SetHighlightCurrentLine(true)
-	t.source.ModifyFontEasy("LiberationMono 11px")
+	t.source.ModifyFontEasy("LiberationMono 8")
 
 	t.ascii = gtk.NewTextView()
 	t.ascii.SetEditable(false)
 	t.ascii.SetCursorVisible(true)
 	// t.ascii.SetState(gtk.STATE_INSENSITIVE)
-	t.ascii.ModifyFontEasy("LiberationMono 11px")
+	t.ascii.ModifyFontEasy("LiberationMono 8")
 	t.ascii.ModifyText(gtk.STATE_NORMAL, gdk.NewColor("grey"))
 	t.asciibuffer = t.ascii.GetBuffer()
+	// t.asciibuffer.SetProperty("cursor-pisition", nil)
+	// t.ascii.Connect("click_notify_event", func() { log.Println(t.asciibuffer.GetCharCount()) })
+	// t.ascii.on
 
 	if !newfile {
 		data, err := ioutil.ReadFile(filename)
@@ -124,6 +128,18 @@ func NewTab(filename string) {
 	log.Println(n)
 
 	tabs = append(tabs, t)
+
+	go func() {
+		for {
+			time.Sleep(500 * time.Millisecond)
+			var iter gtk.TextIter
+			mark := t.asciibuffer.GetInsert()
+			t.asciibuffer.GetIterAtMark(&iter, mark)
+			// t.asciibuffer.GetIterAtOffset(iter, char_offset)
+			offset := iter.GetOffset()
+			log.Println(offset)
+		}
+	}()
 
 }
 

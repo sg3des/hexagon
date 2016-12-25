@@ -10,8 +10,9 @@ type UI struct {
 
 func CreateUI() *UI {
 	ui := &UI{}
+
 	ui.window = gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
-	ui.window.SetDefaultSize(600, 200)
+	ui.window.SetDefaultSize(600, 500)
 	ui.vbox = gtk.NewVBox(false, 0)
 	ui.notebook = gtk.NewNotebook()
 	ui.vbox.PackStart(ui.notebook, true, true, 0)
