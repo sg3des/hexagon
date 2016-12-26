@@ -123,6 +123,7 @@ func NewTab(filename string) {
 		t.SetASCII(ascii)
 	}
 	t.asciibuffer.Connect("mark-set", t.FocusASCII)
+	t.sourcebuffer.Connect("mark-set", t.FocusSource)
 }
 
 func (t *Tab) SetLineNumbers(linenums []string) {
@@ -136,10 +137,7 @@ func (t *Tab) SetASCII(text []string) {
 func (t *Tab) FocusASCII() {
 	var iter gtk.TextIter
 	t.asciibuffer.GetIterAtMark(&iter, t.asciibuffer.GetInsert())
-	t.Highlight(iter)
-}
 
-func (t *Tab) Highlight(iter gtk.TextIter) {
 	if t.asciitag == nil {
 		t.asciitag = t.asciibuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
 		t.sourcetag = t.sourcebuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
@@ -159,6 +157,30 @@ func (t *Tab) Highlight(iter gtk.TextIter) {
 	t.sourcebuffer.GetIterAtLineOffset(&start, row, col)
 	t.sourcebuffer.GetIterAtLineOffset(&end, row, col+2)
 	t.sourcebuffer.ApplyTag(t.sourcetag, &start, &end)
+}
+
+func (t *Tab) FocusSource() {
+	var iter gtk.TextIter
+	t.sourcebuffer.GetIterAtMark(&iter, t.sourcebuffer.GetInsert())
+
+	if t.sourcetag == nil {
+		t.asciitag = t.asciibuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
+		t.sourcetag = t.sourcebuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
+	}
+
+	t.RemoveTag("selected")
+	offset := iter.GetOffset() - iter.GetOffset()%3
+
+	var start, end gtk.TextIter
+	t.sourcebuffer.GetIterAtOffset(&start, offset)
+	t.sourcebuffer.GetIterAtOffset(&end, offset+2)
+	t.sourcebuffer.ApplyTag(t.sourcetag, &start, &end)
+
+	row := start.GetLine()
+	col := start.GetLineOffset() / 3
+	t.asciibuffer.GetIterAtLineOffset(&start, row, col)
+	t.asciibuffer.GetIterAtLineOffset(&end, row, col+1)
+	t.asciibuffer.ApplyTag(t.asciitaga, &start, &end)
 }
 
 func (t *Tab) RemoveTag(name string) {
