@@ -29,9 +29,11 @@ type Tab struct {
 	// scrollbar    *gtk.Adjustment
 	source       *gsv.SourceView
 	sourcebuffer *gsv.SourceBuffer
+	sourcetag    *gtk.TextTag
 
 	ascii       *gtk.TextView
 	asciibuffer *gtk.TextBuffer
+	asciitag    *gtk.TextTag
 }
 
 func NewTab(filename string) {
@@ -70,23 +72,6 @@ func NewTab(filename string) {
 	t.ascii.ModifyText(gtk.STATE_NORMAL, gdk.NewColor("grey"))
 	t.asciibuffer = t.ascii.GetBuffer()
 
-	if !newfile {
-		data, err := ioutil.ReadFile(filename)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		linenums, text, ascii := byteToHex(data)
-
-		t.sourcebuffer.BeginNotUndoableAction()
-		t.sourcebuffer.SetText(text)
-		t.sourcebuffer.EndNotUndoableAction()
-
-		t.SetLineNumbers(linenums)
-		t.SetASCII(ascii)
-	}
-
 	scrollSource := gtk.NewScrolledWindow(nil, nil)
 	scrollSource.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
 	scrollSource.SetShadowType(gtk.SHADOW_IN)
@@ -121,9 +106,23 @@ func NewTab(filename string) {
 
 	tabs = append(tabs, t)
 
-	t.ascii.Connect("button-press-event", t.FocusASCII)
-	t.ascii.Connect("move-cursor", t.FocusASCII)
+	if !newfile {
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
+		linenums, text, ascii := byteToHex(data)
+
+		t.sourcebuffer.BeginNotUndoableAction()
+		t.sourcebuffer.SetText(text)
+		t.sourcebuffer.EndNotUndoableAction()
+
+		t.SetLineNumbers(linenums)
+		t.SetASCII(ascii)
+	}
+	t.asciibuffer.Connect("mark-set", t.FocusASCII)
 }
 
 func (t *Tab) SetLineNumbers(linenums []string) {
@@ -136,7 +135,39 @@ func (t *Tab) SetASCII(text []string) {
 
 func (t *Tab) FocusASCII() {
 	var iter gtk.TextIter
-	mark := t.asciibuffer.GetInsert()
-	t.asciibuffer.GetIterAtMark(&iter, mark)
-	log.Println(iter.GetOffset())
+	t.asciibuffer.GetIterAtMark(&iter, t.asciibuffer.GetInsert())
+	t.Highlight(iter)
+}
+
+func (t *Tab) Highlight(iter gtk.TextIter) {
+	if t.asciitag == nil {
+		t.asciitag = t.asciibuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
+		t.sourcetag = t.sourcebuffer.CreateTag("selected", map[string]string{"background": "#666", "foreground": "#fff"})
+	}
+
+	t.RemoveTag("selected")
+
+	var start, end gtk.TextIter
+	t.asciibuffer.GetIterAtOffset(&end, iter.GetOffset()+1)
+	t.asciibuffer.ApplyTag(t.asciitag, &iter, &end)
+
+	row := iter.GetLine()
+	col := iter.GetLineOffset() * 3
+	if col+2 > 16*3 {
+		return
+	}
+	t.sourcebuffer.GetIterAtLineOffset(&start, row, col)
+	t.sourcebuffer.GetIterAtLineOffset(&end, row, col+2)
+	t.sourcebuffer.ApplyTag(t.sourcetag, &start, &end)
+}
+
+func (t *Tab) RemoveTag(name string) {
+	var start, end gtk.TextIter
+	t.asciibuffer.GetIterAtOffset(&start, 0)
+	t.asciibuffer.GetIterAtOffset(&end, t.asciibuffer.GetCharCount())
+	t.asciibuffer.RemoveTagByName(name, &start, &end)
+
+	t.sourcebuffer.GetIterAtOffset(&start, 0)
+	t.sourcebuffer.GetIterAtOffset(&end, t.sourcebuffer.GetCharCount())
+	t.sourcebuffer.RemoveTagByName(name, &start, &end)
 }

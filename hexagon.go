@@ -74,7 +74,7 @@ func byteToASCII(data []byte) string {
 		}
 	}
 
-	return " " + s + " "
+	return s
 }
 
 func tabsContains(filename string) bool {
