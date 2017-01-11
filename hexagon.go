@@ -67,7 +67,9 @@ func byteToHex(data []byte) ([]string, string, []string) {
 func byteToASCII(data []byte) string {
 	var s string
 	for _, b := range data {
-		if b < 32 || b > 126 {
+		if b == 0 {
+			s += " "
+		} else if b < 32 || b > 126 {
 			s += "."
 		} else {
 			s += string(b)

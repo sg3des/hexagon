@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -124,6 +125,7 @@ func NewTab(filename string) {
 	}
 	t.asciibuffer.Connect("mark-set", t.FocusASCII)
 	t.sourcebuffer.Connect("mark-set", t.FocusSource)
+	t.sourcebuffer.Connect("changed", t.ChangedSource)
 }
 
 func (t *Tab) SetLineNumbers(linenums []string) {
@@ -176,11 +178,11 @@ func (t *Tab) FocusSource() {
 	t.sourcebuffer.GetIterAtOffset(&end, offset+2)
 	t.sourcebuffer.ApplyTag(t.sourcetag, &start, &end)
 
-	row := start.GetLine()
-	col := start.GetLineOffset() / 3
-	t.asciibuffer.GetIterAtLineOffset(&start, row, col)
-	t.asciibuffer.GetIterAtLineOffset(&end, row, col+1)
-	t.asciibuffer.ApplyTag(t.asciitaga, &start, &end)
+	// row := start.GetLine()
+	// col := start.GetLineOffset() / 3
+	// t.asciibuffer.GetIterAtLineOffset(&start, row, col)
+	// t.asciibuffer.GetIterAtLineOffset(&end, row, col+1)
+	// t.asciibuffer.ApplyTag(t.asciitag, &start, &end)
 }
 
 func (t *Tab) RemoveTag(name string) {
@@ -192,4 +194,47 @@ func (t *Tab) RemoveTag(name string) {
 	t.sourcebuffer.GetIterAtOffset(&start, 0)
 	t.sourcebuffer.GetIterAtOffset(&end, t.sourcebuffer.GetCharCount())
 	t.sourcebuffer.RemoveTagByName(name, &start, &end)
+}
+
+func (t *Tab) ChangedSource() {
+	log.Println("changed")
+	text := t.GetText(false)
+
+	lines := strings.Split(text, "\n")
+	var ascii []string
+	var linenums []string
+	var lineoff int
+	for _, line := range lines {
+		line = strings.Replace(line, " ", "", -1)
+		data, err := hex.DecodeString(line)
+		if err != nil {
+			log.Println("failed convert hex to data,", err)
+			return
+		}
+
+		// asciiBytes := byteToASCII(data)
+
+		ascii = append(ascii, byteToASCII(data))
+
+		linenum := fmt.Sprintf(" %06x  ", lineoff)
+		if len(data) == 0 {
+			linenum = ""
+		}
+		linenums = append(linenums, linenum)
+		lineoff += len(data)
+	}
+
+	// t.linesbuffer.SetText(linenums)
+	t.SetLineNumbers(linenums)
+	t.SetASCII(ascii)
+	// t.asciibuffer.SetText(strings.Join(ascii, "\n"))
+}
+
+func (t *Tab) GetText(hiddenChars bool) string {
+	var start gtk.TextIter
+	var end gtk.TextIter
+
+	t.sourcebuffer.GetStartIter(&start)
+	t.sourcebuffer.GetEndIter(&end)
+	return t.sourcebuffer.GetText(&start, &end, hiddenChars)
 }
