@@ -123,6 +123,14 @@ func NewTab(filename string) {
 		t.SetLineNumbers(linenums)
 		t.SetASCII(ascii)
 	}
+
+	var iter gtk.TextIter
+	t.asciibuffer.GetIterAtOffset(&iter, 0)
+	t.asciibuffer.PlaceCursor(&iter)
+
+	t.sourcebuffer.GetIterAtOffset(&iter, 0)
+	t.sourcebuffer.PlaceCursor(&iter)
+
 	t.asciibuffer.Connect("mark-set", t.FocusASCII)
 	t.sourcebuffer.Connect("mark-set", t.FocusSource)
 	t.sourcebuffer.Connect("changed", t.ChangedSource)
@@ -156,6 +164,9 @@ func (t *Tab) FocusASCII() {
 	if col+2 > 16*3 {
 		return
 	}
+	// col := iter.GetLineOffset()
+
+	// log.Println(row, col)
 	t.sourcebuffer.GetIterAtLineOffset(&start, row, col)
 	t.sourcebuffer.GetIterAtLineOffset(&end, row, col+2)
 	t.sourcebuffer.ApplyTag(t.sourcetag, &start, &end)
